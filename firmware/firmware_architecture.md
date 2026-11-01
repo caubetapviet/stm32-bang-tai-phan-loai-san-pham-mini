@@ -76,7 +76,6 @@ Các module này phối hợp với `main` để thực hiện chức năng tư�
 
 - Mỗi module đảm nhiệm một nhóm chức năng riêng, hạn chế trùng lặp trách nhiệm.
 - `main` giữ vai trò điều phối, không trực tiếp đảm nhiệm toàn bộ xử lý của các module chức năng.
-- Các module trao đổi thông tin thông qua những giao diện được xác định trong tài liệu thiết kế module.
 - Hạn chế phụ thuộc trực tiếp giữa các module khi không cần thiết.
 - Việc quản lý trạng thái, dữ liệu và điều khiển phần cứng cần được phân chia rõ ràng theo chức năng của từng module.
-- Chi tiết về trách nhiệm, giao diện hàm (API), dữ liệu và quan hệ phụ thuộc của từng module được trình bày trong các tài liệu thiết kế tương ứng thuộc thư mục `modules/`.
+- Chi tiết về trách nhiệm, giao diện hàm (API), dữ liệu và quan hệ phụ thuộc của từng module được trình bày trong các tài liệu thiết kế tương ứng thuộc thư mục `module_design/`.
