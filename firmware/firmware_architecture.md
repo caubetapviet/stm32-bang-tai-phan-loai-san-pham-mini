@@ -18,7 +18,7 @@ Sơ đồ kiến trúc firmware gồm 3 tầng chính:
 
 Sơ đồ thể hiện cấu trúc và mối liên hệ tổng quát giữa các module:
 
-
+![Sơ đồ kiến trúc firmware](../images/black_hole.png)
 
 ## 3. Danh sách module và chức năng
 
