@@ -18,7 +18,7 @@ Hệ thống có các chức năng chính:
 - Đếm và hiển thị số lượng sản phẩm đã phân loại.
 - Hỗ trợ hai chế độ hoạt động AUTO và MANUAL.
 - Phát hiện lỗi và đưa hệ thống về trạng thái an toàn.
-- Lưu trữ dữ liệu lâu dài, đảm bảo dữ liệu không bị mất khi mất nguồn điện.
+- Lưu bản sao dữ liệu đếm vào bộ nhớ không mất dữ liệu (ROM) để khôi phục khi cấp điện lại.
 - Định hướng tích hợp IoT để giám sát hệ thống.
 
 ### 1.3. Nền tảng phát triển
@@ -37,11 +37,11 @@ Hệ thống có các chức năng chính:
 
 Hệ thống có ba trạng thái:
 
-| Tên trạng thái | Ý nghĩa |
-|---|---|
-| `STATE_STOP` | Hệ thống đang dừng. |
+| Tên trạng thái  | Ý nghĩa                 |
+|-----------------|-------------------------|
+| `STATE_STOP`    | Hệ thống đang dừng.     |
 | `STATE_RUNNING` | Hệ thống đang vận hành. |
-| `STATE_ERROR` | Hệ thống đang gặp lỗi. |
+| `STATE_ERROR`   | Hệ thống đang gặp lỗi.  |
 
 Các tên trạng thái trên dùng để mô tả trạng thái hiện tại của hệ thống, không phải tên nút nhấn.
 
@@ -49,9 +49,9 @@ Các tên trạng thái trên dùng để mô tả trạng thái hiện tại c�
 
 Hệ thống có hai chế độ:
 
-| Tên chế độ | Ý nghĩa |
-|---|---|
-| `MODE_AUTO` | Chế độ tự động. |
+| Tên chế độ    | Ý nghĩa                     |
+|---------------|-----------------------------|
+| `MODE_AUTO`   | Chế độ tự động.             |
 | `MODE_MANUAL` | Chế độ điều khiển bằng tay. |
 
 Chế độ hoạt động xác định cách hệ thống điều khiển băng tải và servo khi ở `STATE_RUNNING`.
@@ -60,14 +60,14 @@ Chế độ hoạt động xác định cách hệ thống điều khiển băng
 
 Các nút nhấn vật lý được quy ước như sau:
 
-| Tên nút | Chức năng |
-|---|---|
-| `BTN_START` | Khởi động hệ thống. |
-| `BTN_STOP` | Dừng hệ thống. |
-| `BTN_MODE` | Chuyển đổi chế độ AUTO/MANUAL. |
-| `BTN_RESET` | Đặt lại bộ đếm hoặc xử lý lỗi tùy theo trạng thái hệ thống và thời gian nhấn. |
-| `BTN_CONVEYOR` | Điều khiển bật/tắt băng tải trong chế độ MANUAL. |
-| `BTN_SERVO` | Điều khiển chuyển đổi vị trí servo trong chế độ MANUAL. |
+| Tên nút        | Chức năng                                                                              |
+|----------------|----------------------------------------------------------------------------------------|
+| `BTN_START`    | Khởi động hệ thống.                                                                    |
+| `BTN_STOP`     | Dừng hệ thống.                                                                         |
+| `BTN_MODE`     | Chuyển đổi chế độ AUTO/MANUAL.                                                         |
+| `BTN_RESET`    | Đặt lại bộ đếm (ở `STATE_STOP`) hoặc xóa lỗi (ở `STATE_ERROR`), tùy theo trạng thái hệ thống. |
+| `BTN_CONVEYOR` | Điều khiển bật/tắt băng tải trong chế độ MANUAL.                                       |
+| `BTN_SERVO`    | Điều khiển chuyển đổi vị trí servo trong chế độ MANUAL.                                |
 
 Cần phân biệt:
 
@@ -101,17 +101,29 @@ Hệ thống sử dụng hai cảm biến đặt theo phương thẳng đứng �
 
 Nguyên lý phân loại:
 
-1. Khi một trong hai cảm biến phát hiện sản phẩm, hệ thống bắt đầu tính thời gian T1.
+1. Khi hệ thống ở trạng thái sẵn sàng nhận sản phẩm mới (xem cơ chế tái kích hoạt bên dưới) và một trong hai cảm biến phát hiện sản phẩm, hệ thống bắt đầu tính thời gian T1.
 2. Sau khi hết thời gian T1, hệ thống kiểm tra trạng thái của cả hai cảm biến:
+
    - `CB_Thap = LOW` và `CB_Cao = LOW`: xác định sản phẩm loại A.
    - `CB_Thap = LOW` và `CB_Cao = HIGH`: xác định sản phẩm loại B.
    - Chỉ `CB_Cao = LOW`: tiếp tục chờ tín hiệu từ `CB_Thap`.
    - Cả hai cảm biến đều ở mức `HIGH`: không ghi nhận sản phẩm.
 3. Khi phân loại thành công, hệ thống phát sinh sự kiện tương ứng với loại sản phẩm.
 4. Trong chế độ AUTO, servo thực hiện thao tác phân loại theo loại sản phẩm.
-5. Bộ đếm được cập nhật sau khi lượt phân loại được xác nhận thành công.
+5. Bộ đếm được cập nhật ngay khi hệ thống xác định được loại sản phẩm A hoặc B, không phụ thuộc vào thao tác của servo.
 
 Giá trị T1 chưa được chốt chính thức và sẽ được hiệu chỉnh trong quá trình thử nghiệm.
+
+**Cơ chế tái kích hoạt:**
+
+- Sau mỗi lượt phân loại thành công, hoặc lượt bị loại bỏ vì cả hai cảm biến ở mức `HIGH`, hệ thống chỉ nhận sản phẩm mới khi **cả hai cảm biến `CB_Thap` và `CB_Cao` đều ở mức `HIGH`**.
+- Cơ chế này tránh trường hợp cùng một sản phẩm còn nằm tại vị trí cảm biến bị phân loại và đếm lặp lại sau mỗi khoảng T1.
+- Khi hệ thống vừa chuyển sang `STATE_RUNNING`, hệ thống ở trạng thái sẵn sàng ngay, kể cả khi cảm biến đang ở mức `LOW`. Sản phẩm đang nằm tại vị trí cảm biến lúc này được coi là sản phẩm mới nếu giữ cảm biến ở mức `LOW` đủ thời gian T1.
+
+**Giả định về cách đặt sản phẩm:**
+
+- Hệ thống không được thiết kế để phân loại các sản phẩm đặt sát nhau. Sản phẩm cần được đặt cách xa nhau trên băng tải.
+- Trường hợp hai sản phẩm đặt quá sát nhau làm cảm biến không trở về mức `HIGH` được phát hiện thông qua lỗi `ERROR_CONTINUOUSLY_ACTIVE` (xem mục 4.1).
 
 ### 3.2. Điều khiển băng tải và servo
 
@@ -119,6 +131,7 @@ Giá trị T1 chưa được chốt chính thức và sẽ được hiệu chỉ
 - Tốc độ động cơ được điều chỉnh bằng tín hiệu PWM.
 - Servo được điều khiển bằng tín hiệu PWM để thực hiện thao tác phân loại sản phẩm.
 - Khi hệ thống chuyển sang `STATE_STOP` hoặc `STATE_ERROR`:
+
   - Băng tải phải dừng.
   - Servo phải trở về vị trí `Non-gate`.
 
@@ -128,24 +141,26 @@ Các thông số như tốc độ băng tải, góc servo và thời gian giữ 
 
 Khi hệ thống ở `MODE_AUTO` và `STATE_RUNNING`:
 
-- Hệ thống tự động vận hành băng tải.
+- Hệ thống tự động vận hành băng tải. Băng tải chạy ngay khi hệ thống chuyển sang `STATE_RUNNING`.
 - Cảm biến nhận biết sản phẩm và xác định loại sản phẩm.
 - Servo tự động thực hiện thao tác phân loại sản phẩm A.
 - Sản phẩm B đi thẳng, không cần thao tác gạt của servo.
-- Bộ đếm được cập nhật sau mỗi lượt phân loại thành công.
-- Hệ thống bắt đầu tính thời gian timeout ngay khi bắt đầu vận hành ở chế độ AUTO.
+- Bộ đếm được cập nhật ngay khi xác định được loại sản phẩm.
+- Hệ thống bắt đầu tính thời gian timeout ngay khi chuyển sang `STATE_RUNNING` ở chế độ AUTO.
 - Sau mỗi lượt phân loại thành công, thời gian timeout được tính lại.
 
 ### 3.4. Chế độ MODE_MANUAL
 
 Khi hệ thống ở `MODE_MANUAL` và `STATE_RUNNING`:
 
+- Khi vừa chuyển sang `STATE_RUNNING`, băng tải dừng và servo ở vị trí `Non-gate`.
 - Người vận hành có thể điều khiển băng tải và servo bằng các nút nhấn riêng.
 - Nhấn `BTN_CONVEYOR` để chuyển đổi trạng thái bật/tắt băng tải.
 - Nhấn `BTN_SERVO` để chuyển đổi vị trí servo giữa `Non-gate` và `Gate`.
 - Servo giữ nguyên vị trí sau khi được điều khiển cho đến lần nhấn `BTN_SERVO` tiếp theo.
 - Quá trình phát hiện và đếm sản phẩm A/B vẫn được duy trì.
 - Không tự động thực hiện thao tác phân loại bằng servo theo kết quả cảm biến.
+- Hai lỗi `ERROR_TIMEOUT` và `ERROR_CONTINUOUSLY_ACTIVE` vẫn được phát hiện ở chế độ này. Cả hai chỉ tính thời gian khi băng tải đang chạy (xem mục 4.1).
 
 `BTN_CONVEYOR` và `BTN_SERVO` chỉ có hiệu lực khi hệ thống ở `MODE_MANUAL` và `STATE_RUNNING`.
 
@@ -159,6 +174,9 @@ Hệ thống có ba trạng thái: `STATE_STOP`, `STATE_RUNNING` và `STATE_ERRO
 
 - Người vận hành nhấn `BTN_START`.
 - Hệ thống bắt đầu hoạt động theo `MODE_AUTO` hoặc `MODE_MANUAL` đã chọn.
+- Ở `MODE_AUTO`: băng tải chạy ngay và thời gian timeout bắt đầu được tính.
+- Ở `MODE_MANUAL`: băng tải dừng và servo ở vị trí `Non-gate` cho đến khi người vận hành điều khiển.
+- Hệ thống ở trạng thái sẵn sàng nhận sản phẩm ngay (xem cơ chế tái kích hoạt ở mục 3.1).
 
 **Từ STATE_RUNNING sang STATE_STOP:**
 
@@ -195,19 +213,23 @@ Không cho phép chuyển trực tiếp từ `STATE_ERROR` sang `STATE_RUNNING`.
 
 ### 4.1. Các loại lỗi
 
-Hiện tại hệ thống thống nhất hai loại lỗi liên quan đến cảm biến:
+Hiện tại hệ thống thống nhất hai loại lỗi liên quan đến cảm biến. Cả hai lỗi đều được phát hiện ở `MODE_AUTO` và `MODE_MANUAL`.
 
 **ERROR_CONTINUOUSLY_ACTIVE**
 
-- Xảy ra khi cảm biến duy trì trạng thái phát hiện sản phẩm liên tục vượt quá thời gian cho phép.
+- Xảy ra khi cảm biến duy trì trạng thái phát hiện sản phẩm (mức `LOW`) liên tục vượt quá thời gian cho phép T2.
 - Hệ thống phải phát hiện lỗi và chuyển sang `STATE_ERROR`.
+- Ở `MODE_AUTO`: thời gian T2 được tính bất cứ khi nào cảm biến ở mức `LOW` (băng tải luôn chạy trong `STATE_RUNNING`).
+- Ở `MODE_MANUAL`: thời gian T2 chỉ được tính khi băng tải đang chạy. Bộ đếm thời gian về 0 khi băng tải dừng và được tính lại từ 0 khi băng tải chạy trở lại.
+- Ràng buộc: T2 phải lớn hơn T1 và lớn hơn thời gian một sản phẩm đi qua cảm biến, để sản phẩm bình thường không gây lỗi.
 
 **ERROR_TIMEOUT**
 
 - Xảy ra khi hệ thống chờ sản phẩm hoặc chờ quá trình nhận biết sản phẩm vượt quá thời gian cho phép.
 - Thời gian timeout dự kiến là 30 giây.
-- Thời gian bắt đầu được tính ngay khi hệ thống vận hành ở chế độ AUTO.
-- Sau mỗi lượt phân loại thành công, thời gian timeout được tính lại.
+- Ở `MODE_AUTO`: thời gian bắt đầu được tính ngay khi hệ thống chuyển sang `STATE_RUNNING` (băng tải chạy ngay khi vận hành).
+- Ở `MODE_MANUAL`: thời gian chỉ được tính khi băng tải đang chạy. Bộ đếm thời gian về 0 khi băng tải dừng và được tính lại từ 0 khi băng tải chạy trở lại.
+- Ở cả hai chế độ, sau mỗi lượt phân loại thành công, thời gian timeout được tính lại.
 
 ### 4.2. Quy trình xử lý lỗi
 
@@ -218,10 +240,9 @@ Khi phát hiện `ERROR_CONTINUOUSLY_ACTIVE` hoặc `ERROR_TIMEOUT`:
 3. Ngừng quá trình phân loại.
 4. Đưa servo về vị trí `Non-gate`.
 5. Bật đèn LED báo lỗi và còi cảnh báo.
-6. Hủy lượt phân loại đang được xử lý gần nhất.
-7. Khôi phục bộ đếm về giá trị của lần phân loại thành công gần nhất.
-8. Khóa các nút điều khiển, ngoại trừ `BTN_RESET`.
-9. LCD tiếp tục bật để hiển thị trạng thái `STATE_ERROR` và mã lỗi.
+6. Hủy lượt phân loại đang được xử lý (nếu có). Lượt này không làm thay đổi bộ đếm.
+7. Khóa các nút điều khiển, ngoại trừ `BTN_RESET`.
+8. LCD tiếp tục bật để hiển thị trạng thái `STATE_ERROR` và mã lỗi.
 
 ### 4.3. Xử lý sau lỗi
 
@@ -230,7 +251,7 @@ Khi hệ thống ở `STATE_ERROR`, người vận hành nhấn `BTN_RESET` đ�
 - Xóa trạng thái lỗi.
 - Tắt đèn LED báo lỗi và còi cảnh báo.
 - Đưa hệ thống về `STATE_STOP`.
-- Giữ nguyên dữ liệu đếm của các lượt phân loại thành công trước đó.
+- Giữ nguyên dữ liệu đếm của các lượt phân loại thành công trước đó. `BTN_RESET` ở `STATE_ERROR` không xóa bộ đếm.
 - Đưa servo về vị trí `Non-gate`.
 - LCD chuyển sang giao diện hiển thị `STATE_STOP` và chế độ hiện tại.
 
@@ -242,7 +263,7 @@ Sau khi RESET, người vận hành cần nhấn `BTN_START` để khởi độn
 
 ### 5.1. Bộ đếm sản phẩm
 
-Hệ thống sử dụng hai bộ đếm:
+Hệ thống sử dụng hai bộ đếm lưu trong RAM:
 
 - `Count_A`: tổng số sản phẩm loại A đã phân loại thành công.
 - `Count_B`: tổng số sản phẩm loại B đã phân loại thành công.
@@ -251,40 +272,42 @@ Tổng số sản phẩm được tính theo công thức:
 
 `Count_Total = Count_A + Count_B`
 
+Giá trị của các bộ đếm trong RAM là giá trị được hiển thị lên LCD và gửi lên IoT.
+
 Nguyên tắc cập nhật:
 
-- Chỉ cập nhật bộ đếm khi một lượt phân loại thành công.
+- Cập nhật bộ đếm ngay khi cảm biến xác định được loại sản phẩm A hoặc B, không phụ thuộc vào thao tác của servo.
+- Không có giá trị đếm tạm cần xác nhận hoặc khôi phục.
 - Không tính các sản phẩm chưa phân loại thành công.
-- Khi xảy ra lỗi, hủy lượt phân loại đang xử lý và khôi phục giá trị bộ đếm của lần phân loại thành công gần nhất.
+- Khi xảy ra lỗi, lượt phân loại đang xử lý bị hủy và không làm thay đổi bộ đếm. Các lượt đã phân loại thành công trước đó được giữ nguyên.
 
 ### 5.2. Chức năng RESET bộ đếm
 
-Chức năng RESET được phân biệt theo thời gian nhấn nút và trạng thái hệ thống.
+Chức năng của `BTN_RESET` phụ thuộc vào trạng thái hệ thống. Nhấn nhanh hay nhấn giữ đều có tác dụng như nhau.
 
 **Khi hệ thống ở STATE_STOP:**
 
-- Nhấn nhanh `BTN_RESET`: xóa bộ đếm đang hiển thị.
-- Nhấn giữ `BTN_RESET`: xóa toàn bộ dữ liệu bộ đếm đã lưu bền vững.
+- `BTN_RESET` xóa bộ đếm trong RAM và dữ liệu đã lưu trong ROM về 0.
 
 **Khi hệ thống ở STATE_ERROR:**
 
-- Nhấn `BTN_RESET`: xóa trạng thái lỗi và đưa hệ thống về `STATE_STOP`.
+- `BTN_RESET` xóa trạng thái lỗi và đưa hệ thống về `STATE_STOP`.
 - Không thay đổi dữ liệu đếm của các lượt phân loại thành công trước đó.
 
 **Khi hệ thống ở STATE_RUNNING:**
 
 - `BTN_RESET` không có tác dụng.
 
-### 5.3. Lưu trữ lâu dài
+### 5.3. Lưu trữ lâu dài (ROM)
 
-Hệ thống cần có cơ chế lưu trữ dữ liệu lâu dài.
+ROM (bộ nhớ không mất dữ liệu) dùng để lưu bản sao của các bộ đếm trong RAM.
 
 Yêu cầu:
 
-- Dữ liệu đếm phải được giữ lại khi mất nguồn điện.
-- Khi hệ thống khởi động lại, có thể khôi phục dữ liệu đã lưu trước đó.
-- Có thể lưu dữ liệu theo từng sự kiện hoặc theo chu kỳ.
-- Chức năng nhấn giữ RESET phải xóa dữ liệu bộ đếm đã lưu bền vững.
+- Khi cấp điện, hệ thống nạp giá trị từ ROM vào các bộ đếm trong RAM làm giá trị ban đầu.
+- ROM lưu lại giá trị của RAM khi mất điện (nếu thực hiện được) hoặc lưu theo chu kỳ.
+- Nếu lưu theo chu kỳ, sau khi mất điện có thể mất các lượt đếm kể từ lần lưu gần nhất.
+- `BTN_RESET` ở `STATE_STOP` phải xóa cả dữ liệu đã lưu trong ROM.
 
 Phương án bộ nhớ và phương pháp lưu trữ chưa được quyết định. Sẽ được lựa chọn trong giai đoạn thiết kế phần cứng và phần mềm.
 
@@ -305,14 +328,14 @@ Nội dung hiển thị thay đổi tùy theo trạng thái hệ thống.
 
 Ví dụ:
 
-```text
+```
 STATE: STOP
 MODE: AUTO
 ```
 
 **Khi hệ thống ở STATE_RUNNING:**
 
-LCD hiển thị bốn thông tin:
+LCD hiển thị bốn thông tin (giá trị lấy từ các bộ đếm trong RAM):
 
 - Góc trên bên trái: tổng số sản phẩm A và B.
 - Góc dưới bên trái: số lượng sản phẩm A.
@@ -321,7 +344,7 @@ LCD hiển thị bốn thông tin:
 
 Ví dụ:
 
-```text
+```
 T:120       B:50
 A:70        AUTO
 ```
@@ -333,7 +356,7 @@ A:70        AUTO
 
 Ví dụ:
 
-```text
+```
 STATE: ERROR
 ERR: TIMEOUT
 ```
@@ -359,9 +382,9 @@ Hệ thống có định hướng tích hợp IoT thông qua module ESP8266 ESP-
 
 Các thông tin dự kiến gửi lên giao diện IoT:
 
-- Tổng số sản phẩm.
-- Số lượng sản phẩm A.
-- Số lượng sản phẩm B.
+- Tổng số sản phẩm (giá trị bộ đếm trong RAM).
+- Số lượng sản phẩm A (giá trị bộ đếm trong RAM).
+- Số lượng sản phẩm B (giá trị bộ đếm trong RAM).
 - Chế độ `MODE_AUTO`/`MODE_MANUAL`.
 - Trạng thái `STATE_STOP`/`STATE_RUNNING`/`STATE_ERROR`.
 - Thông tin lỗi khi có sự cố.
@@ -379,7 +402,7 @@ Giao tiếp với ESP8266 chưa được triển khai trong giai đoạn hiện 
 - `BTN_START`: khởi động hệ thống từ `STATE_STOP`.
 - `BTN_STOP`: yêu cầu hệ thống chuyển từ `STATE_RUNNING` sang `STATE_STOP`.
 - `BTN_MODE`: chuyển đổi `MODE_AUTO`/`MODE_MANUAL` khi `STATE_STOP`.
-- `BTN_RESET`: đặt lại bộ đếm hoặc xử lý lỗi tùy theo trạng thái và thời gian nhấn.
+- `BTN_RESET`: đặt lại bộ đếm (ở `STATE_STOP`) hoặc xóa lỗi (ở `STATE_ERROR`), tùy theo trạng thái.
 - `BTN_CONVEYOR`: bật/tắt băng tải trong `MODE_MANUAL` và `STATE_RUNNING`.
 - `BTN_SERVO`: chuyển đổi vị trí servo trong `MODE_MANUAL` và `STATE_RUNNING`.
 
@@ -387,16 +410,16 @@ Giao tiếp với ESP8266 chưa được triển khai trong giai đoạn hiện 
 
 - Các nút nhấn sử dụng tín hiệu active-low.
 - Các nút nhấn có cơ chế chống dội phím.
-- `BTN_RESET` phân biệt thao tác nhấn nhanh và nhấn giữ.
+- `BTN_RESET` không phân biệt nhấn nhanh hay nhấn giữ.
 
 ### 7.3. Quy tắc hiệu lực
 
-| Trạng thái | Nút nhấn có hiệu lực |
-|---|---|
-| `STATE_STOP` | `BTN_START`, `BTN_MODE`, `BTN_RESET` |
-| `STATE_RUNNING`, MODE_AUTO | `BTN_STOP` |
+| Trạng thái                   | Nút nhấn có hiệu lực                    |
+|------------------------------|-----------------------------------------|
+| `STATE_STOP`                 | `BTN_START`, `BTN_MODE`, `BTN_RESET`    |
+| `STATE_RUNNING`, MODE_AUTO   | `BTN_STOP`                              |
 | `STATE_RUNNING`, MODE_MANUAL | `BTN_STOP`, `BTN_CONVEYOR`, `BTN_SERVO` |
-| `STATE_ERROR` | `BTN_RESET` |
+| `STATE_ERROR`                | `BTN_RESET`                             |
 
 ---
 
@@ -422,9 +445,10 @@ Các thông số sau chưa được xác định chính thức và sẽ được
 1. Thời gian T1 dùng để xác định loại sản phẩm.
 2. Thời gian T2 dùng để phát hiện cảm biến duy trì trạng thái active liên tục.
 3. Góc quay và thời gian giữ servo tại các vị trí phân loại.
-4. Phương án phần cứng và phương pháp lưu trữ dữ liệu lâu dài.
-5. Thời gian nhấn phân biệt thao tác RESET nhanh và RESET giữ.
-6. Các thông số vận hành thực tế của băng tải và cơ cấu phân loại.
+4. Phương án phần cứng, phương pháp lưu trữ dữ liệu lâu dài và chu kỳ lưu vào ROM.
+5. Các thông số vận hành thực tế của băng tải và cơ cấu phân loại.
+
+Ràng buộc giữa các thông số: T2 > T1 và T2 > thời gian một sản phẩm đi qua cảm biến.
 
 Giá trị timeout hiện dự kiến là 30 giây.
 
@@ -445,4 +469,3 @@ Dự án được triển khai theo các giai đoạn:
 9. Đánh giá kết quả và hoàn thiện mô hình.
 
 Các kết quả kiểm thử, lỗi còn tồn tại và tiến độ thực hiện được ghi nhận riêng trong mục `test`.
-
