@@ -1,5 +1,5 @@
 # Danh sách chân STM32F103C8T6
-![Pinout_STM32](../images/pinout.png)
+![Pinout_STM32](../images/pinout.PNG)
 | Module | Tên tín hiệu | Chân MCU | Chức năng | Cấu hình |
 |---|---|---|---|---|
 | Cảm biến | CB_Thap | PB10 | Phát hiện sản phẩm A và B | GPIO Input, Floating (pull-up bên ngoài) |
@@ -29,3 +29,5 @@
 | | SYS_JTCK-SWCLK | PA14 | Xung nhịp giao tiếp gỡ lỗi/nạp chương trình | SYS, SWD |
 
 > Ghi chú: PC13 (GPIO_Output) chỉ dùng để kiểm thử, không thuộc yêu cầu hệ thống.
+
+> LCD có module i2c pcf8574t nhưng hiện đang sử dụng chế độ 4-bit
