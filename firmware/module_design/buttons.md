@@ -1,4 +1,4 @@
-# BUTTONS MODULE
+# MODULE BUTTONS
 
 ## 1. Overview
 
