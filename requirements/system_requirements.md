@@ -106,8 +106,10 @@ Nguyên lý phân loại:
 
    - `CB_Thap = LOW` và `CB_Cao = LOW`: xác định sản phẩm loại A.
    - `CB_Thap = LOW` và `CB_Cao = HIGH`: xác định sản phẩm loại B.
-   - Chỉ `CB_Cao = LOW`: tiếp tục chờ tín hiệu từ `CB_Thap`.
+   - Chỉ `CB_Cao = LOW`: không nhận diện, không tăng bộ đếm.
    - Cả hai cảm biến đều ở mức `HIGH`: không ghi nhận sản phẩm.
+
+   Như vậy hệ thống chỉ nhận diện thành công trong hai trường hợp: `CB_Thap` và `CB_Cao` cùng ở mức `LOW` (sản phẩm loại A), hoặc chỉ `CB_Thap` ở mức `LOW` (sản phẩm loại B). Các tổ hợp còn lại không được nhận diện và không làm thay đổi bộ đếm.
 3. Khi phân loại thành công, hệ thống phát sinh sự kiện tương ứng với loại sản phẩm.
 4. Trong chế độ AUTO, servo thực hiện thao tác phân loại theo loại sản phẩm.
 5. Bộ đếm được cập nhật ngay khi hệ thống xác định được loại sản phẩm A hoặc B, không phụ thuộc vào thao tác của servo.
@@ -116,8 +118,9 @@ Giá trị T1 chưa được chốt chính thức và sẽ được hiệu chỉ
 
 **Cơ chế tái kích hoạt:**
 
-- Sau mỗi lượt phân loại thành công, hoặc lượt bị loại bỏ vì cả hai cảm biến ở mức `HIGH`, hệ thống chỉ nhận sản phẩm mới khi **cả hai cảm biến `CB_Thap` và `CB_Cao` đều ở mức `HIGH`**.
+- Sau mỗi lần kiểm tra ở cuối thời gian T1 (dù sản phẩm được nhận diện hay không), hệ thống chỉ nhận sản phẩm mới khi **cả hai cảm biến `CB_Thap` và `CB_Cao` đều ở mức `HIGH`**.
 - Cơ chế này tránh trường hợp cùng một sản phẩm còn nằm tại vị trí cảm biến bị phân loại và đếm lặp lại sau mỗi khoảng T1.
+- Trường hợp chỉ `CB_Cao = LOW` kéo dài (cảm biến không trở về `HIGH`) được phát hiện thông qua lỗi `ERROR_CONTINUOUSLY_ACTIVE` (xem mục 4.1).
 - Khi hệ thống vừa chuyển sang `STATE_RUNNING`, hệ thống ở trạng thái sẵn sàng ngay, kể cả khi cảm biến đang ở mức `LOW`. Sản phẩm đang nằm tại vị trí cảm biến lúc này được coi là sản phẩm mới nếu giữ cảm biến ở mức `LOW` đủ thời gian T1.
 
 **Giả định về cách đặt sản phẩm:**
@@ -135,7 +138,7 @@ Giá trị T1 chưa được chốt chính thức và sẽ được hiệu chỉ
   - Băng tải phải dừng.
   - Servo phải trở về vị trí `Non-gate`.
 
-Các thông số như tốc độ băng tải, góc servo và thời gian giữ servo sẽ được hiệu chỉnh trong quá trình thử nghiệm.
+Các thông số như tốc độ băng tải, góc servo, thời gian trễ `T_delay` và thời gian giữ `T_hold` sẽ được hiệu chỉnh trong quá trình thử nghiệm.
 
 ### 3.3. Chế độ MODE_AUTO
 
@@ -143,7 +146,9 @@ Khi hệ thống ở `MODE_AUTO` và `STATE_RUNNING`:
 
 - Hệ thống tự động vận hành băng tải. Băng tải chạy ngay khi hệ thống chuyển sang `STATE_RUNNING`.
 - Cảm biến nhận biết sản phẩm và xác định loại sản phẩm.
-- Servo tự động thực hiện thao tác phân loại sản phẩm A.
+- Servo tự động thực hiện thao tác phân loại sản phẩm A:
+  - Sau khi nhận diện thành công sản phẩm A, hệ thống chờ thời gian trễ `T_delay` rồi chuyển servo sang vị trí `Gate`.
+  - Servo được giữ ở `Gate` trong thời gian `T_hold`, hết `T_hold` servo trở về vị trí `Non-gate`.
 - Sản phẩm B đi thẳng, không cần thao tác gạt của servo.
 - Bộ đếm được cập nhật ngay khi xác định được loại sản phẩm.
 - Hệ thống bắt đầu tính thời gian timeout ngay khi chuyển sang `STATE_RUNNING` ở chế độ AUTO.
@@ -206,6 +211,7 @@ Không cho phép chuyển trực tiếp từ `STATE_ERROR` sang `STATE_RUNNING`.
 - Người vận hành nhấn `BTN_MODE` để chuyển đổi giữa `MODE_AUTO` và `MODE_MANUAL`.
 - `BTN_MODE` chỉ có hiệu lực khi hệ thống ở `STATE_STOP`.
 - Không cho phép thay đổi chế độ khi hệ thống đang `STATE_RUNNING` hoặc `STATE_ERROR`.
+- Khi cấp điện, hệ thống luôn vào `STATE_STOP` và `MODE_AUTO`. Chế độ hoạt động không được lưu lại qua lần tắt nguồn.
 
 ---
 
@@ -217,7 +223,7 @@ Hiện tại hệ thống thống nhất hai loại lỗi liên quan đến cả
 
 **ERROR_CONTINUOUSLY_ACTIVE**
 
-- Xảy ra khi cảm biến duy trì trạng thái phát hiện sản phẩm (mức `LOW`) liên tục vượt quá thời gian cho phép T2.
+- Xảy ra khi một trong hai cảm biến (`CB_Thap` hoặc `CB_Cao`) duy trì trạng thái phát hiện sản phẩm (mức `LOW`) liên tục vượt quá thời gian cho phép T2.
 - Hệ thống phải phát hiện lỗi và chuyển sang `STATE_ERROR`.
 - Ở `MODE_AUTO`: thời gian T2 được tính bất cứ khi nào cảm biến ở mức `LOW` (băng tải luôn chạy trong `STATE_RUNNING`).
 - Ở `MODE_MANUAL`: thời gian T2 chỉ được tính khi băng tải đang chạy. Bộ đếm thời gian về 0 khi băng tải dừng và được tính lại từ 0 khi băng tải chạy trở lại.
@@ -225,7 +231,7 @@ Hiện tại hệ thống thống nhất hai loại lỗi liên quan đến cả
 
 **ERROR_TIMEOUT**
 
-- Xảy ra khi hệ thống chờ sản phẩm hoặc chờ quá trình nhận biết sản phẩm vượt quá thời gian cho phép.
+- Xảy ra khi không có lượt phân loại thành công nào trong thời gian timeout.
 - Thời gian timeout dự kiến là 30 giây.
 - Ở `MODE_AUTO`: thời gian bắt đầu được tính ngay khi hệ thống chuyển sang `STATE_RUNNING` (băng tải chạy ngay khi vận hành).
 - Ở `MODE_MANUAL`: thời gian chỉ được tính khi băng tải đang chạy. Bộ đếm thời gian về 0 khi băng tải dừng và được tính lại từ 0 khi băng tải chạy trở lại.
@@ -307,6 +313,7 @@ Yêu cầu:
 - Khi cấp điện, hệ thống nạp giá trị từ ROM vào các bộ đếm trong RAM làm giá trị ban đầu.
 - ROM lưu lại giá trị của RAM khi mất điện (nếu thực hiện được) hoặc lưu theo chu kỳ.
 - Nếu lưu theo chu kỳ, sau khi mất điện có thể mất các lượt đếm kể từ lần lưu gần nhất.
+- Nếu dữ liệu trong ROM không hợp lệ (lần đầu sử dụng hoặc bị hỏng), hệ thống khởi tạo `Count_A` = 0 và `Count_B` = 0.
 - `BTN_RESET` ở `STATE_STOP` phải xóa cả dữ liệu đã lưu trong ROM.
 
 Phương án bộ nhớ và phương pháp lưu trữ chưa được quyết định. Sẽ được lựa chọn trong giai đoạn thiết kế phần cứng và phần mềm.
@@ -323,14 +330,27 @@ Nội dung hiển thị thay đổi tùy theo trạng thái hệ thống.
 
 **Khi hệ thống ở STATE_STOP:**
 
-- Dòng 1: hiển thị `STATE_STOP`.
-- Dòng 2: hiển thị chế độ hiện tại `MODE_AUTO` hoặc `MODE_MANUAL`.
+LCD luân phiên hiển thị hai màn hình, mỗi màn hình 2 giây, lặp lại liên tục:
 
-Ví dụ:
+- Màn hình 1 (trạng thái và chế độ):
+  - Dòng 1: hiển thị `STATE_STOP`.
+  - Dòng 2: hiển thị chế độ hiện tại `MODE_AUTO` hoặc `MODE_MANUAL`.
+- Màn hình 2 (số lượng sản phẩm): hiển thị tổng số sản phẩm, số lượng A và số lượng B (giá trị lấy từ các bộ đếm trong RAM), bố cục tương tự `STATE_RUNNING` nhưng không hiển thị chế độ.
+
+Ngay khi vào `STATE_STOP` (kể cả khi cấp điện), màn hình 1 được hiển thị trước.
+
+Ví dụ màn hình 1:
 
 ```
 STATE: STOP
 MODE: AUTO
+```
+
+Ví dụ màn hình 2:
+
+```
+T:120       B:50
+A:70
 ```
 
 **Khi hệ thống ở STATE_RUNNING:**
@@ -409,8 +429,10 @@ Giao tiếp với ESP8266 chưa được triển khai trong giai đoạn hiện 
 ### 7.2. Đặc tính nút nhấn
 
 - Các nút nhấn sử dụng tín hiệu active-low.
-- Các nút nhấn có cơ chế chống dội phím.
-- `BTN_RESET` không phân biệt nhấn nhanh hay nhấn giữ.
+- Các nút nhấn có cơ chế chống dội phím (thời gian chống dội dự kiến 20 ms).
+- Cơ chế khóa nút: tại một thời điểm chỉ nhận một nút; phải nhả tất cả các nút thì mới nhận nút khác.
+- Nếu đang giữ nút lúc cấp điện, các nút bị khóa cho đến khi nhả hết.
+- Không phân biệt nhấn nhanh hay nhấn giữ.
 
 ### 7.3. Quy tắc hiệu lực
 
@@ -429,7 +451,7 @@ Giao tiếp với ESP8266 chưa được triển khai trong giai đoạn hiện 
 - Khi chuyển sang `STATE_STOP` hoặc `STATE_ERROR`, băng tải phải dừng.
 - Servo phải trở về vị trí `Non-gate` khi hệ thống ở `STATE_STOP` hoặc `STATE_ERROR`.
 - LCD luôn bật để hiển thị thông tin tương ứng với trạng thái hệ thống.
-- Không tiếp tục phân loại khi hệ thống đang `STATE_ERROR`.
+- Chỉ phân loại và đếm sản phẩm khi hệ thống ở `STATE_RUNNING`. Ở `STATE_STOP` và `STATE_ERROR`, tín hiệu cảm biến bị bỏ qua.
 - Không cho phép thay đổi chế độ khi hệ thống đang `STATE_RUNNING` hoặc `STATE_ERROR`.
 - Không cho phép sử dụng `BTN_CONVEYOR` và `BTN_SERVO` khi hệ thống ở `MODE_AUTO`.
 - Khi nhấn `BTN_RESET` trong `STATE_ERROR`, hệ thống trở về `STATE_STOP` và chờ lệnh `BTN_START`.
@@ -444,13 +466,18 @@ Các thông số sau chưa được xác định chính thức và sẽ được
 
 1. Thời gian T1 dùng để xác định loại sản phẩm.
 2. Thời gian T2 dùng để phát hiện cảm biến duy trì trạng thái active liên tục.
-3. Góc quay và thời gian giữ servo tại các vị trí phân loại.
-4. Phương án phần cứng, phương pháp lưu trữ dữ liệu lâu dài và chu kỳ lưu vào ROM.
+3. Góc quay của servo, thời gian trễ `T_delay` (từ lúc nhận diện thành công sản phẩm A đến lúc servo gạt) và thời gian giữ `T_hold` (servo giữ ở `Gate` trước khi trở về `Non-gate`).
+4. Phương án phần cứng, phương pháp lưu trữ dữ liệu lâu dài, chu kỳ lưu vào ROM và cách kiểm tra tính hợp lệ của dữ liệu trong ROM.
 5. Các thông số vận hành thực tế của băng tải và cơ cấu phân loại.
 
-Ràng buộc giữa các thông số: T2 > T1 và T2 > thời gian một sản phẩm đi qua cảm biến.
+Ràng buộc giữa các thông số:
+
+- T2 > T1 và T2 > thời gian một sản phẩm đi qua cảm biến.
+- `T_delay` + `T_hold` nhỏ hơn khoảng thời gian tối thiểu giữa hai sản phẩm liên tiếp (vì sản phẩm được đặt cách xa nhau).
 
 Giá trị timeout hiện dự kiến là 30 giây.
+
+Thời gian luân phiên giữa hai màn hình LCD ở `STATE_STOP` dự kiến là 2 giây.
 
 ---
 
