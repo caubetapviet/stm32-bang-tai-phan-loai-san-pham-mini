@@ -2,8 +2,8 @@
 ![Pinout_STM32](../images/pinout.PNG)
 | Module | Tên tín hiệu | Chân MCU | Chức năng | Cấu hình |
 |---|---|---|---|---|
-| Cảm biến | CB_Thap | PB10 | Phát hiện sản phẩm A và B | GPIO Input, Floating (pull-up bên ngoài) |
-| | CB_Cao | PB11 | Phát hiện sản phẩm A | GPIO Input, Floating (pull-up bên ngoài) |
+| Cảm biến | CB_Thap | PB10 | Phát hiện sản phẩm A và B | GPIO Input, Pull-up |
+| | CB_Cao | PB11 | Phát hiện sản phẩm A | GPIO Input, Pull-up |
 | Nút nhấn | START | PB12 | Khởi động hệ thống (`BTN_START`) | GPIO Input, Pull-up |
 | | STOP | PB13 | Dừng hệ thống (`BTN_STOP`) | GPIO Input, Pull-up |
 | | MODE | PB14 | Chuyển đổi AUTO/MANUAL, chỉ ở `STATE_STOP` (`BTN_MODE`) | GPIO Input, Pull-up |
