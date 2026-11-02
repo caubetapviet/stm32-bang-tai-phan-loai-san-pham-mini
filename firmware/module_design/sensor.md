@@ -157,6 +157,7 @@ Nếu cảm biến vẫn đang LOW trên thực tế, module cũng không đư�
 
 ### 5.5. Luồng hoạt động
 
+![Module_Sensor_flowchart](../images/Module_Sensor_flowchart.PNG)
 
 ## 6. Dependencies
 
