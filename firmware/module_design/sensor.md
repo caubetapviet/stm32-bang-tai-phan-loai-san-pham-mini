@@ -67,7 +67,7 @@ Module không chịu trách nhiệm:
 
 ### 4.1. Khai báo kiểu dữ liệu
 
-```
+```c
 typedef enum
 {
     SENSOR_EVENT_NONE = 0,
@@ -84,7 +84,7 @@ typedef struct
 
 ### 4.2. Danh sách API
 
-```
+```c
 void Sensor_Init(void);
 void Sensor_Start(void);
 void Sensor_Stop(void);
@@ -111,7 +111,7 @@ void Sensor_GetState(SensorState_t *state);
 
 Module sử dụng bốn trạng thái:
 
-```
+```c
 typedef enum
 {
     SENSOR_STOPPED = 0,
