@@ -1,4 +1,4 @@
-# MODULE DESIGN – SENSOR
+# MODULE SENSOR
 
 ## 1. Overview
 
