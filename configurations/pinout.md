@@ -1,5 +1,5 @@
 # Danh sách chân STM32F103C8T6
-
+![Pinout_STM32](../images/pinout.png)
 | Module | Tên tín hiệu | Chân MCU | Chức năng | Cấu hình |
 |---|---|---|---|---|
 | Cảm biến | CB_Thap | PB10 | Phát hiện sản phẩm A và B | GPIO Input, Floating (pull-up bên ngoài) |
