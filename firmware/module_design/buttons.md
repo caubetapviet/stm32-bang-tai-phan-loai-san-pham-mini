@@ -17,7 +17,7 @@ Module có cơ chế khóa đầu vào nội bộ nhằm đảm bảo mỗi chu 
 - Chỉ mở khóa khi tất cả các nút đã được nhả.
 - Khởi động ở trạng thái khóa nếu phát hiện có nút đang được giữ.
 
-Lưu ý: Module hiện chưa được thiết xử lý debounce và không quyết định chức năng điều khiển của từng nút theo trạng thái hệ thống.
+### Lưu ý: Module hiện chưa được thiết xử lý debounce theo `requirement` và không quyết định chức năng điều khiển của từng nút theo trạng thái hệ thống.
 
 ## 3. Input / Output
 
