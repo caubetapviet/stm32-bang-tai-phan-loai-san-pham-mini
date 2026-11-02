@@ -1,4 +1,4 @@
-# MODULE DESIGN – BUTTONS
+# BUTTONS MODULE
 
 ## 1. Overview
 
