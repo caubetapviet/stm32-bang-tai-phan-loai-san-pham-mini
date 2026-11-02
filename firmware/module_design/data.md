@@ -1,4 +1,4 @@
-# MODULE DESIGN: DATA
+# MODULE DATA
 
 ## 1. Overview
 
