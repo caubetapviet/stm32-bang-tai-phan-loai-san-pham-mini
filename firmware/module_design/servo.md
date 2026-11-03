@@ -4,8 +4,6 @@
 
 Module `servo` điều khiển servo SG90 gạt sản phẩm loại A bằng PWM của TIM2_CH1 (`PWM_SERVO`, PA0):
 
-### LƯU Ý: configurations đang để TIM2_CH1 trong bản này tạo PWM có tần số 20kHz, khác với `configuration` 
-
 - Chu kỳ PWM 20 ms (50 Hz), 1 đếm = 10 µs (Prescaler = 79, Period = 1999).
 - Servo có hai vị trí: `Non-gate` (cánh gạt nằm dọc băng tải, sản phẩm đi thẳng) và `Gate` (cánh gạt quét khoảng 45° so với `Non-gate` để đưa sản phẩm A về đúng vị trí).
 
