@@ -1,4 +1,3 @@
-
 #ifndef BUTTONS_H
 #define BUTTONS_H
 
@@ -16,7 +15,10 @@ typedef enum
     BUTTON_EVENT_SERVO
 } ButtonEvent_t;
 
+// khoi tao module
 void Buttons_Init(void);
+
+// goi lien tuc moi vong lap, tra ve toi da 1 su kien nut nhan 1 luc
 ButtonEvent_t Buttons_Update(void);
 
 #endif
