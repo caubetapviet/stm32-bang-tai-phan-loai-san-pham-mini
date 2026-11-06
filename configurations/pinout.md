@@ -1,5 +1,6 @@
 # Danh sách chân STM32F103C8T6
 ![Pinout_STM32](../images/pinout.PNG)
+
 | Module | Tên tín hiệu | Chân MCU | Chức năng | Cấu hình |
 |---|---|---|---|---|
 | Cảm biến | CB_Thap | PB10 | Phát hiện sản phẩm A và B | GPIO Input, Pull-up |
@@ -13,12 +14,14 @@
 | Cảnh báo | LED_RUN | PA7 | Báo trạng thái chạy | GPIO Output Push-pull |
 | | LED_FAULT | PB0 | Báo trạng thái lỗi | GPIO Output Push-pull |
 | | BUZZER | PB1 | Phát âm thanh cảnh báo lỗi | GPIO Output Push-pull |
-| LCD 16x2 | LCD_RS | PA1 | Chọn thanh ghi lệnh/dữ liệu | GPIO Output Push-pull |
+| LCD 16x2 (nếu dùng 4-bit) | LCD_RS | PA1 | Chọn thanh ghi lệnh/dữ liệu | GPIO Output Push-pull |
 | | LCD_E | PA2 | Tạo xung Enable | GPIO Output Push-pull |
 | | LCD_D4 | PA3 | Truyền bit dữ liệu D4 | GPIO Output Push-pull |
 | | LCD_D5 | PA4 | Truyền bit dữ liệu D5 | GPIO Output Push-pull |
 | | LCD_D6 | PA5 | Truyền bit dữ liệu D6 | GPIO Output Push-pull |
 | | LCD_D7 | PA6 | Truyền bit dữ liệu D7 | GPIO Output Push-pull |
+| LCD I2C (nếu dùng i2c) | I2C1_SCL | PB8 | Xung nhịp I2C, nối module PCF8574T | Alternate Function Open-drain, I2C1 (remap) |
+| | I2C1_SDA | PB9 | Dữ liệu I2C, nối module PCF8574T | Alternate Function Open-drain, I2C1 (remap) |
 | Băng tải | PWM_CONVEYOR | PB6 | Xuất PWM điều chỉnh tốc độ động cơ qua chân EN của mạch công suất (TIM4_CH1) | Alternate Function Push-pull, PWM |
 | | IN1_L298 | PB5 | Điều khiển đầu vào thứ nhất của mạch công suất | GPIO Output Push-pull |
 | | IN2_L298 | PB4 | Điều khiển đầu vào thứ hai của mạch công suất | GPIO Output Push-pull |
@@ -30,4 +33,4 @@
 
 > Ghi chú: PC13 (GPIO_Output) chỉ dùng để kiểm thử, không thuộc yêu cầu hệ thống.
 
-> LCD có module i2c pcf8574t nhưng hiện đang sử dụng chế độ 4-bit
+> Ghi chú LCD: LCD có module I2C PCF8574T nhưng hiện đang dùng chế độ 4-bit (PA1 đến PA6). Nếu chuyển sang LCD I2C thì dùng I2C1 trên chân PB8 (SCL) và PB9 (SDA). Hai chân này đang trống. Khi đó 6 chân PA1 đến PA6 được giải phóng, sửa lại file .c của lcd, API công khai giữ nguyên.
