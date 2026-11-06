@@ -39,17 +39,24 @@ Công thức: `f = f_timer / ((Prescaler + 1) × (Period + 1))`, với `f_timer`
 |---|---|---|---|---|---|
 | TIM1 | Tick 1 ms cho `Timer_GetTick()` | 0 | 7999 | 1000 Hz, chu kỳ 1 ms | Update, `TIM1_UP_IRQn`, ưu tiên 0 |
 | TIM2_CH1 (PA0, `PWM_SERVO`) | PWM điều khiển servo | 79 | 1999 | 50 Hz, chu kỳ 20 ms; 1 đếm = 10 µs (xung 1 ms = 100 đếm, 2 ms = 200 đếm) | Không |
-| TIM4_CH1 (PB6, `PWM_CONVEYOR`) | PWM tốc độ băng tải (chân EN của L298) | 0 | 199 | 40 kHz; 200 mức duty (0,5% mỗi mức) | Không |
+| TIM4_CH1 (PB6, `PWM_CONVEYOR`) | PWM tốc độ băng tải (chân EN của L298N) | **1** | 199 | **20 kHz**; 200 mức duty (0,5% mỗi mức) | Không |
 
 Cấu hình chung cho cả ba timer: đếm lên, nguồn clock nội, `ClockDivision = DIV1`, `AutoReloadPreload` tắt. Kênh PWM của TIM2 và TIM4 dùng chế độ PWM1, cực tính cao, xung ban đầu bằng 0 (`Pulse = 0`).
 
+Ghi chú về TIM4:
+
+- Tần số PWM băng tải là 20 kHz (Prescaler = 1, Period = 199), thấp hơn so với 40 kHz ban đầu (Prescaler = 0) vì L298N không thích hợp với tần số quá cao. Số mức duty vẫn là 200 vì Period không đổi.
+- `conveyor.c` tính CCR từ giá trị ARR thực của TIM4 (`__HAL_TIM_GET_AUTORELOAD`), nên đổi Period trong CubeMX thì công thức duty vẫn đúng.
+- Cần sửa Prescaler của TIM4 từ 0 lên 1 trong `.ioc` (xem mục 9).
+- TIM4 độc lập với TIM1 và TIM2, nên thay đổi này không ảnh hưởng tick 1 ms và PWM servo.
+
 Các việc CubeMX không tự làm, phải có trong code người dùng:
 
-- `HAL_TIM_Base_Start_IT(&htim1);` để TIM1 chạy và sinh ngắt.
-- `HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);` và `HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);` để xuất PWM.
+- `HAL_TIM_Base_Start_IT(&htim1);` để TIM1 chạy và sinh ngắt (gọi trong `main` hoặc trong `Timer_Init()`, tùy bản code hiện tại; phải gọi trước mọi module cần thời gian).
+- `HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);` và `HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);` để xuất PWM. Theo thiết kế module, hai lệnh này nằm trong `Servo_Init()` và `Conveyor_Init()`.
 - Định nghĩa `HAL_TIM_PeriodElapsedCallback()` (hiện nằm trong `timer.c`) và lọc theo `htim->Instance == TIM1`.
 
-Giá trị `Pulse` ứng với hai vị trí servo (`Non-gate`, `Gate`) và tốc độ băng tải chưa được chốt.
+Giá trị `Pulse` ứng với hai vị trí servo (`Non-gate`, `Gate`) và tốc độ băng tải chưa được chốt chính thức. Giá trị tạm: servo 60 và 110 (0,6 ms và 1,1 ms), băng tải 70%.
 
 ## 4. NVIC
 
@@ -93,6 +100,8 @@ Chi tiết từng chân xem `pinout.md`. Cấu hình chung (từ `gpio.c`):
 
 Mức ban đầu LOW cho mọi đầu ra đảm bảo khi cấp điện: băng tải không quay (`IN1_L298` = `IN2_L298` = 0), LED và còi tắt.
 
+Chân dự phòng cho LCD I2C: PB8 (`I2C1_SCL`) và PB9 (`I2C1_SDA`) đang trống, I2C1 chưa được bật trong `.ioc`. Nếu chuyển LCD sang I2C thì chọn hai chân này trong CubeMX (I2C1 remap, CubeMX tự bật). Hiện LCD dùng chế độ 4-bit trên PA1 đến PA6.
+
 ## 7. Thứ tự khởi tạo (theo `.ioc`)
 
 `SystemClock_Config()` → `MX_GPIO_Init()` → `MX_TIM1_Init()` → `MX_USART1_UART_Init()` → `MX_TIM2_Init()` → `MX_TIM4_Init()`
@@ -103,3 +112,10 @@ Mức ban đầu LOW cho mọi đầu ra đảm bảo khi cấp điện: băng t
 - MicroLIB: (bổ sung)
 - Create HEX File: (bổ sung; cần bật để nạp vào Proteus)
 - Macro định nghĩa: `USE_HAL_DRIVER`, `STM32F103xB` (xác nhận trong `.uvprojx`)
+
+## 9. Việc cần làm trong `.ioc`
+
+| Việc | Trạng thái |
+|---|---|
+| Đổi Prescaler của TIM4 từ 0 lên 1 (PWM băng tải 20 kHz) | Cần sửa trong CubeMX. Trong file `.ioc` sẽ có thêm dòng `TIM4.Prescaler=1` và `Prescaler` được thêm vào `TIM4.IPParameters` |
+| Bật I2C1 (PB8, PB9) | Chưa làm, chỉ cần khi chuyển sang LCD I2C |
